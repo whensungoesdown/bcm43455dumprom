@@ -15,9 +15,9 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+$(info    PWD is $(PWD))
 ccflags-y += \
-	-Idrivers/net/wireless/broadcom/brcm80211/brcmfmac	\
-	-Idrivers/net/wireless/broadcom/brcm80211/include
+	-I$(PWD)/include \
 
 ccflags-y += -D__CHECK_ENDIAN__
 
