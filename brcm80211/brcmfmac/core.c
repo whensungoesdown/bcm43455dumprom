@@ -1077,6 +1077,47 @@ static int brcmf_revinfo_read(struct seq_file *s, void *data)
 	return 0;
 }
 
+static int brcmf_ram_read(struct seq_file *s, void *data)
+{
+	char *dump;
+	size_t ramsize;
+	int err;
+	struct brcmf_bus *bus = dev_get_drvdata(s->private);
+	size_t i = 0;
+
+	ramsize = brcmf_bus_get_ramsize(bus);
+	if (!ramsize)
+		return -ENOTSUPP;
+
+	dump = vzalloc(ramsize);
+	if (!dump)
+		return -ENOMEM;
+
+	err = brcmf_bus_get_memdump(bus, dump, ramsize);
+	if (err) {
+		vfree(dump);
+		return err;
+	}
+
+	seq_printf(s, "ramsize: 0x%lx bytes\n\n", ramsize);
+
+	for (i = 0; i < ramsize - 16; i+=16)
+	{
+		seq_printf(s, "%08lX  %02X %02X %02X %02X "
+				"%02X %02X %02X %02X  "
+				"%02X %02X %02X %02X "
+				"%02X %02X %02X %02X\n",
+				i, dump[i+0], dump[i+1], dump[i+2], dump[i+3],
+				dump[i+4], dump[i+5], dump[i+6], dump[i+7],
+ 				dump[i+8], dump[i+9], dump[i+10], dump[i+11],
+				dump[i+12], dump[i+13], dump[i+14], dump[i+15]);
+	}
+
+	vfree(dump);
+
+	return 0;
+}
+
 static void brcmf_core_bus_reset(struct work_struct *work)
 {
 	struct brcmf_pub *drvr = container_of(work, struct brcmf_pub,
@@ -1163,6 +1204,9 @@ static int brcmf_bus_started(struct brcmf_pub *drvr, struct cfg80211_ops *ops)
 	brcmf_feat_debugfs_create(drvr);
 	brcmf_proto_debugfs_create(drvr);
 	brcmf_bus_debugfs_create(bus_if);
+
+	// uty: test
+	brcmf_debugfs_add_entry(drvr, "ram", brcmf_ram_read);
 
 	return 0;
 
