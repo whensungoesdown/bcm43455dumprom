@@ -3295,12 +3295,40 @@ brcmf_sdio_verifymemory(struct brcmf_sdio_dev *sdiodev, u32 ram_addr,
 }
 #endif	/* DEBUG */
 
+char* g_original_rom = NULL;
+
+static int save_original_rom (struct brcmf_sdio *bus)
+{
+	int err = 0;
+	
+	printk("uty: test\nRead ROM 0x0, 640KB\n");
+        g_original_rom = kmalloc(640 * 1024, GFP_KERNEL);
+	if (NULL == g_original_rom)
+		return 0;
+
+	memset(g_original_rom, 0, 640 *1024);
+
+	err = brcmf_sdiod_ramrw(bus->sdiodev, false, 0,
+			(u8 *)g_original_rom, 640*1024);
+	if (err)
+	{
+		printk("error %d on read %d membytes at 0x%08x\n",
+				err, 640*1024, 0);
+		kfree(g_original_rom);
+		g_original_rom = NULL;
+	}
+
+	return 0;
+}
+
 static int brcmf_sdio_download_code_file(struct brcmf_sdio *bus,
 					 const struct firmware *fw)
 {
 	int err;
 
 	brcmf_dbg(TRACE, "Enter\n");
+	
+	save_original_rom(bus);
 
 	err = brcmf_sdiod_ramrw(bus->sdiodev, true, bus->ci->rambase,
 				(u8 *)fw->data, fw->size);

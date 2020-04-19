@@ -1162,6 +1162,38 @@ static int brcmf_rom_read(struct seq_file *s, void *data)
 	return 0;
 }
 
+// define in sdio.c
+extern char* g_original_rom;
+
+static int brcmf_original_rom_read(struct seq_file *s, void *data)
+{
+	size_t i = 0;
+
+	if (NULL == g_original_rom)
+	{
+		seq_printf(s, "Original ROM not saved\n");
+		return 0;
+	}
+
+	// ROM size hard coded 640KB
+	//
+	seq_printf(s, "ROM before firmware loaded, start at 0x0, size: 0x%x bytes\n\n", 640*1024);
+
+	for (i = 0; i < 640*1024 - 16; i+=16)
+	{
+		seq_printf(s, "%08lX  %02X %02X %02X %02X "
+				"%02X %02X %02X %02X  "
+				"%02X %02X %02X %02X "
+				"%02X %02X %02X %02X\n",
+				i, g_original_rom[i+0], g_original_rom[i+1], g_original_rom[i+2], g_original_rom[i+3],
+				g_original_rom[i+4], g_original_rom[i+5], g_original_rom[i+6], g_original_rom[i+7],
+ 				g_original_rom[i+8], g_original_rom[i+9], g_original_rom[i+10], g_original_rom[i+11],
+				g_original_rom[i+12], g_original_rom[i+13], g_original_rom[i+14], g_original_rom[i+15]);
+	}
+
+	return 0;
+}
+
 static void brcmf_core_bus_reset(struct work_struct *work)
 {
 	struct brcmf_pub *drvr = container_of(work, struct brcmf_pub,
@@ -1252,6 +1284,7 @@ static int brcmf_bus_started(struct brcmf_pub *drvr, struct cfg80211_ops *ops)
 	// uty: test
 	brcmf_debugfs_add_entry(drvr, "ram", brcmf_ram_read);
 	brcmf_debugfs_add_entry(drvr, "rom", brcmf_rom_read);
+	brcmf_debugfs_add_entry(drvr, "original_rom", brcmf_original_rom_read);
 
 	return 0;
 
