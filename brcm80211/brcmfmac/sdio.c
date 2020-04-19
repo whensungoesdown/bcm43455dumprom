@@ -3535,6 +3535,15 @@ done:
 	return err;
 }
 
+static size_t brcmf_sdio_bus_get_rambase(struct device *dev)
+{
+	struct brcmf_bus *bus_if = dev_get_drvdata(dev);
+	struct brcmf_sdio_dev *sdiodev = bus_if->bus_priv.sdio;
+	struct brcmf_sdio *bus = sdiodev->bus;
+
+	return bus->ci->rambase;
+}
+
 static size_t brcmf_sdio_bus_get_ramsize(struct device *dev)
 {
 	struct brcmf_bus *bus_if = dev_get_drvdata(dev);
@@ -3559,6 +3568,47 @@ static int brcmf_sdio_bus_get_memdump(struct device *dev, void *data,
 		  mem_size);
 
 	address = bus->ci->rambase;
+	offset = err = 0;
+	sdio_claim_host(sdiodev->func1);
+	while (offset < mem_size) {
+		len = ((offset + MEMBLOCK) < mem_size) ? MEMBLOCK :
+		      mem_size - offset;
+		err = brcmf_sdiod_ramrw(sdiodev, false, address, data, len);
+		if (err) {
+			brcmf_err("error %d on reading %d membytes at 0x%08x\n",
+				  err, len, address);
+			goto done;
+		}
+		data += len;
+		offset += len;
+		address += len;
+	}
+
+done:
+	sdio_release_host(sdiodev->func1);
+	return err;
+}
+
+static size_t brcmf_sdio_bus_get_romsize(struct device *dev)
+{
+	return 640 * 1024; // 640kb
+}
+
+static int brcmf_sdio_bus_get_romdump(struct device *dev, void *data,
+				      size_t mem_size)
+{
+	struct brcmf_bus *bus_if = dev_get_drvdata(dev);
+	struct brcmf_sdio_dev *sdiodev = bus_if->bus_priv.sdio;
+	//struct brcmf_sdio *bus = sdiodev->bus;
+	int err;
+	int address;
+	int offset;
+	int len;
+
+	brcmf_dbg(INFO, "dump at 0x%08x: size=%zu\n", 0,
+		  mem_size);
+
+	address = 0;
 	offset = err = 0;
 	sdio_claim_host(sdiodev->func1);
 	while (offset < mem_size) {
@@ -4100,8 +4150,11 @@ static const struct brcmf_bus_ops brcmf_sdio_bus_ops = {
 	.rxctl = brcmf_sdio_bus_rxctl,
 	.gettxq = brcmf_sdio_bus_gettxq,
 	.wowl_config = brcmf_sdio_wowl_config,
+	.get_rambase = brcmf_sdio_bus_get_rambase,
 	.get_ramsize = brcmf_sdio_bus_get_ramsize,
 	.get_memdump = brcmf_sdio_bus_get_memdump,
+	.get_romsize = brcmf_sdio_bus_get_romsize,
+	.get_romdump = brcmf_sdio_bus_get_romdump,
 	.get_fwname = brcmf_sdio_get_fwname,
 	.debugfs_create = brcmf_sdio_debugfs_create
 };

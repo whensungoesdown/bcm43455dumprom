@@ -1081,9 +1081,12 @@ static int brcmf_ram_read(struct seq_file *s, void *data)
 {
 	char *dump;
 	size_t ramsize;
+	size_t rambase = 0;
 	int err;
 	struct brcmf_bus *bus = dev_get_drvdata(s->private);
 	size_t i = 0;
+
+	rambase = brcmf_bus_get_rambase(bus);
 
 	ramsize = brcmf_bus_get_ramsize(bus);
 	if (!ramsize)
@@ -1099,9 +1102,50 @@ static int brcmf_ram_read(struct seq_file *s, void *data)
 		return err;
 	}
 
-	seq_printf(s, "ramsize: 0x%lx bytes\n\n", ramsize);
+	seq_printf(s, "RAM start at 0x%lx, size: 0x%lx bytes\n\n", rambase, ramsize);
 
 	for (i = 0; i < ramsize - 16; i+=16)
+	{
+		seq_printf(s, "%08lX  %02X %02X %02X %02X "
+				"%02X %02X %02X %02X  "
+				"%02X %02X %02X %02X "
+				"%02X %02X %02X %02X\n",
+				rambase+i, dump[i+0], dump[i+1], dump[i+2], dump[i+3],
+				dump[i+4], dump[i+5], dump[i+6], dump[i+7],
+ 				dump[i+8], dump[i+9], dump[i+10], dump[i+11],
+				dump[i+12], dump[i+13], dump[i+14], dump[i+15]);
+	}
+
+	vfree(dump);
+
+	return 0;
+}
+
+static int brcmf_rom_read(struct seq_file *s, void *data)
+{
+	char *dump;
+	size_t romsize;
+	int err;
+	struct brcmf_bus *bus = dev_get_drvdata(s->private);
+	size_t i = 0;
+
+	romsize = brcmf_bus_get_romsize(bus);
+	if (!romsize)
+		return -ENOTSUPP;
+
+	dump = vzalloc(romsize);
+	if (!dump)
+		return -ENOMEM;
+
+	err = brcmf_bus_get_romdump(bus, dump, romsize);
+	if (err) {
+		vfree(dump);
+		return err;
+	}
+
+	seq_printf(s, "ROM start at 0x0, size: 0x%lx bytes\n\n", romsize);
+
+	for (i = 0; i < romsize - 16; i+=16)
 	{
 		seq_printf(s, "%08lX  %02X %02X %02X %02X "
 				"%02X %02X %02X %02X  "
@@ -1207,6 +1251,7 @@ static int brcmf_bus_started(struct brcmf_pub *drvr, struct cfg80211_ops *ops)
 
 	// uty: test
 	brcmf_debugfs_add_entry(drvr, "ram", brcmf_ram_read);
+	brcmf_debugfs_add_entry(drvr, "rom", brcmf_rom_read);
 
 	return 0;
 

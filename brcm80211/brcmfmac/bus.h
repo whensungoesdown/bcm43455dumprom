@@ -58,8 +58,11 @@ struct brcmf_bus_dcmd {
  * @rxctl: receive a control response message from dongle.
  * @gettxq: obtain a reference of bus transmit queue (optional).
  * @wowl_config: specify if dongle is configured for wowl when going to suspend
+ * @get_rambase: obtain base address of ram.
  * @get_ramsize: obtain size of device memory.
  * @get_memdump: obtain device memory dump in provided buffer.
+ * @get_romsize: obtain size of rom.
+ * @get_romdump: obtain rom dump in provided buffer.
  * @get_fwname: obtain firmware name.
  *
  * This structure provides an abstract interface towards the
@@ -75,8 +78,11 @@ struct brcmf_bus_ops {
 	int (*rxctl)(struct device *dev, unsigned char *msg, uint len);
 	struct pktq * (*gettxq)(struct device *dev);
 	void (*wowl_config)(struct device *dev, bool enabled);
+	size_t (*get_rambase)(struct device *dev);
 	size_t (*get_ramsize)(struct device *dev);
 	int (*get_memdump)(struct device *dev, void *data, size_t len);
+	size_t (*get_romsize)(struct device *dev);
+	int (*get_romdump)(struct device *dev, void *data, size_t len);
 	int (*get_fwname)(struct device *dev, const char *ext,
 			  unsigned char *fw_name);
 	void (*debugfs_create)(struct device *dev);
@@ -202,6 +208,13 @@ void brcmf_bus_wowl_config(struct brcmf_bus *bus, bool enabled)
 		bus->ops->wowl_config(bus->dev, enabled);
 }
 
+static inline size_t brcmf_bus_get_rambase(struct brcmf_bus *bus)
+{
+	if (!bus->ops->get_rambase)
+		return -EOPNOTSUPP;
+
+	return bus->ops->get_rambase(bus->dev);
+}
 static inline size_t brcmf_bus_get_ramsize(struct brcmf_bus *bus)
 {
 	if (!bus->ops->get_ramsize)
@@ -217,6 +230,23 @@ int brcmf_bus_get_memdump(struct brcmf_bus *bus, void *data, size_t len)
 		return -EOPNOTSUPP;
 
 	return bus->ops->get_memdump(bus->dev, data, len);
+}
+
+static inline size_t brcmf_bus_get_romsize(struct brcmf_bus *bus)
+{
+	if (!bus->ops->get_romsize)
+		return 0;
+
+	return bus->ops->get_romsize(bus->dev);
+}
+
+static inline
+int brcmf_bus_get_romdump(struct brcmf_bus *bus, void *data, size_t len)
+{
+	if (!bus->ops->get_romdump)
+		return -EOPNOTSUPP;
+
+	return bus->ops->get_romdump(bus->dev, data, len);
 }
 
 static inline
