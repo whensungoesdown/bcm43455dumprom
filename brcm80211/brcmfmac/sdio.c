@@ -2872,7 +2872,8 @@ static int brcmf_sdio_readconsole(struct brcmf_sdio *bus)
 			if (line[n - 1] == '\r')
 				n--;
 			line[n] = 0;
-			pr_debug("CONSOLE: %s\n", line);
+			//pr_debug("CONSOLE: %s\n", line);
+			printk("CONSOLE: %s\n", line);
 		}
 	}
 break2:
@@ -3295,25 +3296,27 @@ brcmf_sdio_verifymemory(struct brcmf_sdio_dev *sdiodev, u32 ram_addr,
 }
 #endif	/* DEBUG */
 
+#define ROM_SIZE  704 * 1024
+
 char* g_original_rom = NULL;
 
 static int save_original_rom (struct brcmf_sdio *bus)
 {
 	int err = 0;
 	
-	printk("uty: test\nRead ROM 0x0, 640KB\n");
-        g_original_rom = kmalloc(640 * 1024, GFP_KERNEL);
+	printk("uty: test\nRead ROM 0x0, %dKB\n", ROM_SIZE/2024);
+        g_original_rom = kmalloc(ROM_SIZE, GFP_KERNEL);
 	if (NULL == g_original_rom)
 		return 0;
 
-	memset(g_original_rom, 0, 640 *1024);
+	memset(g_original_rom, 0, ROM_SIZE);
 
 	err = brcmf_sdiod_ramrw(bus->sdiodev, false, 0,
-			(u8 *)g_original_rom, 640*1024);
+			(u8 *)g_original_rom, ROM_SIZE);
 	if (err)
 	{
 		printk("error %d on read %d membytes at 0x%08x\n",
-				err, 640*1024, 0);
+				err, ROM_SIZE, 0);
 		kfree(g_original_rom);
 		g_original_rom = NULL;
 	}
@@ -3619,7 +3622,7 @@ done:
 
 static size_t brcmf_sdio_bus_get_romsize(struct device *dev)
 {
-	return 640 * 1024; // 640kb
+	return ROM_SIZE;
 }
 
 static int brcmf_sdio_bus_get_romdump(struct device *dev, void *data,

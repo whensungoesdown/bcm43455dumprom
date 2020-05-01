@@ -1168,6 +1168,8 @@ extern char* g_original_rom;
 static int brcmf_original_rom_read(struct seq_file *s, void *data)
 {
 	size_t i = 0;
+	struct brcmf_bus *bus = dev_get_drvdata(s->private);
+	size_t romsize;
 
 	if (NULL == g_original_rom)
 	{
@@ -1175,11 +1177,13 @@ static int brcmf_original_rom_read(struct seq_file *s, void *data)
 		return 0;
 	}
 
-	// ROM size hard coded 640KB
-	//
-	seq_printf(s, "ROM before firmware loaded, start at 0x0, size: 0x%x bytes\n\n", 640*1024);
+	romsize = brcmf_bus_get_romsize(bus);
+	if (!romsize)
+		return -ENOTSUPP;
 
-	for (i = 0; i < 640*1024 - 16; i+=16)
+	seq_printf(s, "ROM before firmware loaded, start at 0x0, size: 0x%lx bytes\n\n", romsize);
+
+	for (i = 0; i < romsize - 16; i+=16)
 	{
 		seq_printf(s, "%08lX  %02X %02X %02X %02X "
 				"%02X %02X %02X %02X  "
