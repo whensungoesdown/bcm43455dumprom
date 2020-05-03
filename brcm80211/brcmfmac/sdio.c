@@ -3304,7 +3304,7 @@ static int save_original_rom (struct brcmf_sdio *bus)
 {
 	int err = 0;
 	
-	printk("uty: test\nRead ROM 0x0, %dKB\n", ROM_SIZE/2024);
+	printk("uty: test\nRead ROM 0x0, %dKB\n", ROM_SIZE/1024);
         g_original_rom = kmalloc(ROM_SIZE, GFP_KERNEL);
 	if (NULL == g_original_rom)
 		return 0;
